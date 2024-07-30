@@ -6,7 +6,12 @@ import { Inter } from "next/font/google";
 import { PiBell } from "react-icons/pi";import { HiOutlineUser } from "react-icons/hi";
 import FeedCard from "@/components/Feedcard";
 import { LuMoreHorizontal } from "react-icons/lu";
-
+import { CredentialResponse, GoogleLogin } from "@react-oauth/google";
+import { useCallback } from "react";
+import { error } from "console";
+import toast, {Toaster} from 'react-hot-toast'
+import { verifyUserGoogleTokenQuery } from "@/graphql/query/user";
+import { graphqlClient } from "@/clients/api";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -45,12 +50,26 @@ const sidebarMenuItems: XSidebarButton[] = [
     icon: <LuMoreHorizontal />
     ,
   },
-  
-  
 
-]
+];
+
 
 export default function Home() {
+
+const hangleLoginWithGoogle = useCallback(async (cred: CredentialResponse) => {
+    const googleToken = cred.credential;
+    if (!googleToken) return  toast.error ('google token not found');
+      
+      const {verifyGoogleToken} = await graphqlClient.request(
+        verifyUserGoogleTokenQuery,{token: googleToken}
+      );
+
+      toast.success('Verified Success')
+      console.log(verifyGoogleToken)
+
+      if (verifyGoogleToken) window.localStorage.setItem('__x_token', verifyGoogleToken)
+}, []);
+
   return (
     <div className={inter.className}>
       <div className="grid grid-cols-12 h-screen w-screen px-40">
@@ -79,7 +98,14 @@ export default function Home() {
                 <FeedCard/>
                 <FeedCard/>
         </div>
-        <div className="col-span-3"></div>
+        <div className="col-span-3">
+          <div className="border p-5 bg-slate-700 rounded-lg">
+            <h1 className="my-2 text-lg"> New to X?</h1>
+            <div>
+              <GoogleLogin onSuccess={hangleLoginWithGoogle}></GoogleLogin>
+            </div>
+          </div>
+        </div>
       </div>
   </div>
   );
