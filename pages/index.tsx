@@ -7,13 +7,16 @@ import { PiBell } from "react-icons/pi";import { HiOutlineUser } from "react-ico
 import FeedCard from "@/components/Feedcard";
 import { LuMoreHorizontal } from "react-icons/lu";
 import { CredentialResponse, GoogleLogin } from "@react-oauth/google";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { error } from "console";
 import toast, {Toaster} from 'react-hot-toast'
 import { verifyUserGoogleTokenQuery } from "@/graphql/query/user";
 import { graphqlClient } from "@/clients/api";
 import { useCurrentUser } from "@/hooks/user";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
+import { GrImage } from "react-icons/gr";
+import { useCreateTweet, useGetAllTweets } from "@/hooks/tweet";
+import { Tweet } from "@/gql/graphql";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -58,7 +61,31 @@ const sidebarMenuItems: XSidebarButton[] = [
 
 export default function Home() {
   const { user } = useCurrentUser();
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
+  const { tweets = [] } = useGetAllTweets();
+  const { mutateAsync } = useCreateTweet();
+
+  
+  const [content, setContent] = useState("");
+
+
+
+  const handleSelectImage = useCallback(() => {
+    const input = document.createElement("input");
+    input.setAttribute("type","file")
+    input.setAttribute("accept", "image/*")
+    input.click();
+  }, [])
+
+  const handleCreateTweet = useCallback(async () => {
+    await mutateAsync({
+      content,
+      // imageURL,
+    });
+    setContent("");
+    // setImageURL("");
+  }, [mutateAsync, content]);
+
 
   const handleLoginWithGoogle = useCallback(async (cred: CredentialResponse) => {
       const googleToken = cred.credential;
@@ -78,6 +105,8 @@ export default function Home() {
         await queryClient.invalidateQueries({ queryKey: ["current-user"] });
 
   }, [queryClient]);
+
+  
 
   return (
     <div className={inter.className}>
@@ -113,11 +142,33 @@ export default function Home() {
             </div>
         </div>
         <div className="col-span-6 border-l-[1px] border-r-[1px] border-r-gray-600 h-screen overflow-scroll hide-scrollbar border-l-gray-600 ">
+          <div>
+            <div className='border border-l-0 border-r-0 border-b-0 border-gray-600 p-5 hover:bg-gray-900 transition-all cursor-pointer'>
+            <div className='grid grid-cols-12'>
+              <div className='col-span-1 '>
+                      {user?.profileImageURL && (<Image className="rounded-full" src={user?.profileImageURL} alt='user-image' height={50} width={50} />)}
+              </div>
+              <div className="col-span-11 ">
+                  <textarea  value={content}
+                  onChange={(e) => setContent(e.target.value)} name="" id="" className="w-full bg-transparent px-3 border-b border-slate-700 outline-none	" rows={4} placeholder="What's happening?"></textarea>
+                  <div className=" mt-2 flex justify-between items-center">
+                    <GrImage onClick={handleSelectImage} className="text-xl"/>
+                    <button  onClick={handleCreateTweet} className="bg-[#1d9bf0] px-7 py-2 rounded-full text-sm ">Post</button>
+                  </div>
+              </div>
+            </div>
+            </div>
+          </div>
+            {tweets?.map(tweet => tweet ? <FeedCard key={tweet?.id} data={tweet as Tweet}></FeedCard>: null)}
+                {/* <FeedCard/>
                 <FeedCard/>
                 <FeedCard/>
                 <FeedCard/>
                 <FeedCard/>
                 <FeedCard/>
+                <FeedCard/>
+                <FeedCard/>
+                <FeedCard/> */}
         </div>
         <div className="col-span-3">
           {!user && (<div className="border p-5 bg-slate-700 rounded-lg">
